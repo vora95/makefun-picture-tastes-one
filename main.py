@@ -57,7 +57,7 @@ def main() -> int:
     size = os.path.getsize(dst)
     if size > 1_048_576:
         raise SystemExit(f"output too large: {size} bytes")
-    print(f"wrote {dst} ({size} bytes)")
+    print(f"wrote {dst} ({width}x{height}, {size} bytes)")
     return 0
 
 
