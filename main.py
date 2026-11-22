@@ -19,6 +19,28 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
+def _jpeg_dimensions(path):
+    """Read (width, height) from a JPEG's SOF0/SOF2 marker (stdlib only)."""
+    with open(path, "rb") as f:
+        data = f.read()
+    i = 2
+    while i < len(data) - 1:
+        if data[i] != 0xFF:
+            i += 1
+            continue
+        marker = data[i + 1]
+        if marker in (0xC0, 0xC2):
+            height = int.from_bytes(data[i + 5:i + 7], "big")
+            width = int.from_bytes(data[i + 7:i + 9], "big")
+            return width, height
+        if marker in (0xD8, 0xD9) or 0xD0 <= marker <= 0xD7:
+            i += 2
+            continue
+        seg_len = int.from_bytes(data[i + 2:i + 4], "big")
+        i += 2 + seg_len
+    raise ValueError("no SOF marker found")
+
+
 def main() -> int:
     src = os.path.join(HERE, "entry.png")
     out_dir = "/output"
@@ -28,6 +50,9 @@ def main() -> int:
         magic = f.read(3)
     if magic[:2] != b"\xff\xd8":
         raise SystemExit("entry.png is not a JPEG")
+    width, height = _jpeg_dimensions(src)
+    if (width, height) != (1024, 1024):
+        raise SystemExit(f"entry.png is {width}x{height}, need 1024x1024")
     shutil.copyfile(src, dst)
     size = os.path.getsize(dst)
     if size > 1_048_576:
